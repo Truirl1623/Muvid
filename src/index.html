@@ -1,28 +1,22 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Muvid</title>
-  <style>
-    body { font-family: sans-serif; padding: 20px; }
-    button { padding: 10px 20px; margin-top: 10px; }
-    a { display: block; margin-top: 10px; }
-  </style>
+<meta charset="UTF-8">
+<title>Muvid</title>
+<style>
+body { font-family: sans-serif; padding: 20px; }
+button { padding: 10px 20px; margin-top: 10px; }
+</style>
 </head>
 <body>
 
 <h1>Muvid</h1>
 
-<label>Audio (MP3/WAV):
-  <input type="file" id="audio" accept=".mp3,.wav">
-</label><br>
+<input id="audio" type="file" accept=".mp3,.wav"><br><br>
+<input id="cover" type="file" accept=".png,.jpg,.jpeg"><br><br>
 
-<label>Cover (PNG/JPG):
-  <input type="file" id="cover" accept=".png,.jpg,.jpeg">
-</label><br>
-
-<button id="export">Export WebM</button>
-<a id="download" style="display:none"></a>
+<button id="export">Export WebM</button><br><br>
+<a id="download" style="display:none">Download</a>
 
 <script>
 const audioInput = document.getElementById("audio");
@@ -34,33 +28,44 @@ exportBtn.onclick = async () => {
   const audioFile = audioInput.files[0];
   const coverFile = coverInput.files[0];
   if (!audioFile || !coverFile) {
-    alert("Upload audio AND cover.");
+    alert("Upload audio + cover");
     return;
   }
 
   exportBtn.disabled = true;
   exportBtn.textContent = "Rendering…";
 
+  // Canvas
   const canvas = document.createElement("canvas");
   canvas.width = 1280;
   canvas.height = 720;
   const ctx = canvas.getContext("2d");
 
+  // Image
   const img = new Image();
   img.src = URL.createObjectURL(coverFile);
   await img.decode();
 
+  // Audio setup
   const audio = new Audio(URL.createObjectURL(audioFile));
   audio.crossOrigin = "anonymous";
 
   const audioCtx = new AudioContext();
-  const src = audioCtx.createMediaElementSource(audio);
-  src.connect(audioCtx.destination);
-  await audioCtx.resume();
+  const source = audioCtx.createMediaElementSource(audio);
+  const dest = audioCtx.createMediaStreamDestination();
 
-  const stream = canvas.captureStream(30);
-  const recorder = new MediaRecorder(stream, {
-    mimeType: "video/webm; codecs=vp8"
+  source.connect(dest);
+  source.connect(audioCtx.destination);
+
+  // Combine VIDEO + AUDIO
+  const canvasStream = canvas.captureStream(30);
+  const combinedStream = new MediaStream([
+    ...canvasStream.getVideoTracks(),
+    ...dest.stream.getAudioTracks()
+  ]);
+
+  const recorder = new MediaRecorder(combinedStream, {
+    mimeType: "video/webm;codecs=vp8,opus"
   });
 
   const chunks = [];
@@ -69,13 +74,13 @@ exportBtn.onclick = async () => {
     const blob = new Blob(chunks, { type: "video/webm" });
     downloadLink.href = URL.createObjectURL(blob);
     downloadLink.download = "muvid.webm";
-    downloadLink.textContent = "Download video";
     downloadLink.style.display = "block";
-    exportBtn.textContent = "Export WebM";
     exportBtn.disabled = false;
+    exportBtn.textContent = "Export WebM";
   };
 
   recorder.start();
+  await audioCtx.resume();
   await audio.play();
 
   function draw() {
