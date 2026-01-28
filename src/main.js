@@ -9,6 +9,7 @@ const downloadLink = document.getElementById("download");
 
 let recordedBlob = null;
 
+// PREVIEW button
 previewBtn.onclick = async () => {
   if (!audioInput.files[0] || !coverInput.files[0]) {
     alert("Please upload audio and cover image.");
@@ -17,6 +18,7 @@ previewBtn.onclick = async () => {
   alert("Preview uses same logic as export. Ready to render.");
 };
 
+// EXPORT button
 exportBtn.onclick = async () => {
   const audioFile = audioInput.files[0];
   const coverFile = coverInput.files[0];
@@ -32,9 +34,7 @@ exportBtn.onclick = async () => {
   const ctx = canvas.getContext("2d");
 
   const stream = canvas.captureStream(30);
-  const mediaRecorder = new MediaRecorder(stream, {
-    mimeType: "video/webm"
-  });
+  const mediaRecorder = new MediaRecorder(stream, { mimeType: "video/webm" });
 
   const chunks = [];
   mediaRecorder.ondataavailable = e => chunks.push(e.data);
@@ -66,13 +66,7 @@ exportBtn.onclick = async () => {
     const w = canvas.width * scale;
     const h = canvas.height * scale;
 
-    ctx.drawImage(
-      img,
-      (canvas.width - w) / 2,
-      (canvas.height - h) / 2,
-      w,
-      h
-    );
+    ctx.drawImage(img, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
 
     if (!audio.paused) {
       requestAnimationFrame(draw);
