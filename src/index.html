@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Muvid</title>
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#111111">
+    <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+    <header>
+        <h1>Muvid</h1>
+        <p>Upload audio + cover → auto music video (WebM)</p>
+    </header>
+
+    <main>
+        <section class="card">
+            <label>Audio (MP3/WAV)</label>
+            <input id="audioFile" type="file" accept="audio/mpeg,audio/wav" />
+
+            <label>Cover (PNG/JPG)</label>
+            <input id="coverFile" type="file" accept="image/png,image/jpeg" />
+
+            <label>Lyrics (optional TXT)</label>
+            <input id="lyricsFile" type="file" accept="text/plain" />
+
+            <div class="row">
+                <button id="previewBtn">Preview</button>
+                <button id="exportBtn" disabled>Export WebM</button>
+            </div>
+
+            <p id="status" class="status">Ready.</p>
+            <a id="downloadLink" class="hidden">Download video</a>
+        </section>
+
+        <section class="card">
+            <canvas id="canvas" width="1280" height="720"></canvas>
+            <audio id="audio" controls></audio>
+        </section>
+    </main>
+
+    <script src="/main.js"></script>
+</body>
+</html>
