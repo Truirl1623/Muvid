@@ -53,20 +53,41 @@ exportBtn.onclick = async () => {
   const audio = new Audio(URL.createObjectURL(audioFile));
   audio.crossOrigin = "anonymous";
 
+  // --- BEAT ANALYZER ---
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const source = audioCtx.createMediaElementSource(audio);
+  const analyser = audioCtx.createAnalyser();
+  source.connect(analyser);
+  analyser.connect(audioCtx.destination);
+  analyser.fftSize = 256;
+  const bufferLength = analyser.frequencyBinCount;
+  const dataArray = new Uint8Array(bufferLength);
+  // ---------------------
+
   mediaRecorder.start();
   audio.play();
 
   const start = performance.now();
 
   function draw() {
+    // Clear canvas
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    // Slight zoom of cover
     const scale = 1 + Math.sin((performance.now() - start) / 500) * 0.02;
     const w = canvas.width * scale;
     const h = canvas.height * scale;
-
     ctx.drawImage(img, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
+
+    // Beat bars
+    analyser.getByteFrequencyData(dataArray);
+    const barWidth = canvas.width / bufferLength;
+    for (let i = 0; i < bufferLength; i++) {
+      const barHeight = dataArray[i] / 2;
+      ctx.fillStyle = `rgb(${barHeight + 100},50,${255 - barHeight})`;
+      ctx.fillRect(i * barWidth, canvas.height - barHeight, barWidth, barHeight);
+    }
 
     if (!audio.paused) {
       requestAnimationFrame(draw);
@@ -77,3 +98,5 @@ exportBtn.onclick = async () => {
 
   draw();
 };
+
+
