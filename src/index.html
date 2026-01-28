@@ -1,45 +1,99 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Muvid</title>
-    <link rel="manifest" href="/manifest.webmanifest">
-    <meta name="theme-color" content="#111111">
-    <link rel="stylesheet" href="/styles.css" />
+  <meta charset="UTF-8">
+  <title>Muvid Test</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    button { padding: 10px 20px; margin-top: 10px; }
+    a { display: block; margin-top: 10px; }
+  </style>
 </head>
 <body>
-    <header>
-        <h1>Muvid</h1>
-        <p>Upload audio + cover → auto music video (WebM)</p>
-    </header>
 
-    <main>
-        <section class="card">
-            <label>Audio (MP3/WAV)</label>
-            <input id="audioFile" type="file" accept="audio/mpeg,audio/wav" />
+<h1>Muvid Test</h1>
 
-            <label>Cover (PNG/JPG)</label>
-            <input id="coverFile" type="file" accept="image/png,image/jpeg" />
+<label>Audio (MP3/WAV):
+  <input type="file" id="audio" accept=".mp3,.wav">
+</label>
+<br>
+<label>Cover (PNG/JPG):
+  <input type="file" id="cover" accept=".png,.jpg,.jpeg">
+</label>
+<br>
+<button id="export">Export WebM</button>
+<a id="download" style="display:none"></a>
 
-            <label>Lyrics (optional TXT)</label>
-            <input id="lyricsFile" type="file" accept="text/plain" />
+<script>
+const audioInput = document.getElementById("audio");
+const coverInput = document.getElementById("cover");
+const exportBtn = document.getElementById("export");
+const downloadLink = document.getElementById("download");
 
-            <div class="row">
-                <button id="previewBtn">Preview</button>
-                <button id="exportBtn" disabled>Export WebM</button>
-            </div>
+exportBtn.onclick = async () => {
+  const audioFile = audioInput.files[0];
+  const coverFile = coverInput.files[0];
 
-            <p id="status" class="status">Ready.</p>
-            <a id="downloadLink" class="hidden">Download video</a>
-        </section>
+  if (!audioFile || !coverFile) {
+    alert("Please upload audio and cover.");
+    return;
+  }
 
-        <section class="card">
-            <canvas id="canvas" width="1280" height="720"></canvas>
-            <audio id="audio" controls></audio>
-        </section>
-    </main>
+  exportBtn.textContent = "Recording...";
+  exportBtn.disabled = true;
 
-    <script src="/main.js"></script>
+  const canvas = document.createElement("canvas");
+  canvas.width = 1280;
+  canvas.height = 720;
+  const ctx = canvas.getContext("2d");
+
+  const img = new Image();
+  img.src = URL.createObjectURL(coverFile);
+  await img.decode();
+
+  const audio = new Audio(URL.createObjectURL(audioFile));
+  audio.crossOrigin = "anonymous";
+
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const source = audioCtx.createMediaElementSource(audio);
+  source.connect(audioCtx.destination);
+  await audioCtx.resume();
+
+  const stream = canvas.captureStream(30);
+  const mediaRecorder = new MediaRecorder(stream, { mimeType: "video/webm; codecs=vp8" });
+  const chunks = [];
+  mediaRecorder.ondataavailable = e => chunks.push(e.data);
+  mediaRecorder.onstop = () => {
+    const blob = new Blob(chunks, { type: "video/webm" });
+    downloadLink.href = URL.createObjectURL(blob);
+    downloadLink.download = "muvid_test.webm";
+    downloadLink.style.display = "inline-block";
+    downloadLink.textContent = "Download video";
+
+    exportBtn.textContent = "Export WebM";
+    exportBtn.disabled = false;
+  };
+
+  mediaRecorder.start();
+  await audio.play();
+
+  const start = performance.now();
+  function draw() {
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+    if (performance.now() - start < 5000) {
+      requestAnimationFrame(draw);
+    } else {
+      mediaRecorder.stop();
+      audio.pause();
+    }
+  }
+
+  draw();
+};
+</script>
+
 </body>
 </html>
