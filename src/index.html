@@ -4,10 +4,9 @@
   <meta charset="UTF-8" />
   <title>Muvid</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
   <style>
     body {
-      background: #0e0e0e;
+      background: #111;
       color: #fff;
       font-family: Arial, sans-serif;
       display: flex;
@@ -15,76 +14,54 @@
       align-items: center;
       height: 100vh;
     }
-
     .app {
       width: 360px;
-      background: #161616;
+      background: #1b1b1b;
       padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+      border-radius: 10px;
     }
-
-    h1 {
-      text-align: center;
-      margin-bottom: 10px;
-    }
-
     label {
       display: block;
       margin-top: 12px;
-      font-size: 14px;
-      opacity: 0.8;
     }
-
     input, button {
       width: 100%;
       margin-top: 6px;
     }
-
     button {
       margin-top: 16px;
       padding: 10px;
       background: #1f8cff;
-      color: #fff;
       border: none;
-      border-radius: 6px;
-      cursor: pointer;
+      color: #fff;
       font-size: 16px;
+      cursor: pointer;
     }
-
-    button:hover {
-      background: #1570cc;
-    }
-
     a {
       display: none;
       margin-top: 16px;
-      text-align: center;
       color: #1f8cff;
-      text-decoration: none;
+      text-align: center;
     }
   </style>
 </head>
 <body>
 
-  <div class="app">
-    <h1>Muvid</h1>
+<div class="app">
+  <h2>Muvid</h2>
 
-    <label>Audio (MP3 / WAV)</label>
-    <input id="audio" type="file" accept="audio/*" />
+  <label>Audio (MP3 / WAV)</label>
+  <input type="file" id="audio" accept="audio/*">
 
-    <label>Cover Image (PNG / JPG)</label>
-    <input id="cover" type="file" accept="image/*" />
+  <label>Cover (PNG / JPG)</label>
+  <input type="file" id="cover" accept="image/*">
 
-    <label>Lyrics (optional TXT)</label>
-    <input id="lyrics" type="file" accept=".txt" />
+  <button id="export">Export WebM</button>
 
-    <button id="preview">Preview</button>
-    <button id="export">Export WebM</button>
+  <a id="download">Download video</a>
+</div>
 
-    <a id="download">Download video</a>
-  </div>
-
-  <script src="/src/main.js"></script>
+<!-- IMPORTANT: defer -->
+<script src="/src/main.js" defer></script>
 </body>
 </html>
