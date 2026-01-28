@@ -1,73 +1,107 @@
-// Muvid — minimal working version with active Export button
+// Muvid — Audio + Cover + Lyrics → Music Video (WebM)
 
 const audioInput = document.getElementById("audio");
 const coverInput = document.getElementById("cover");
+const lyricsInput = document.getElementById("lyrics");
+const previewBtn = document.getElementById("preview");
 const exportBtn = document.getElementById("export");
 const downloadLink = document.getElementById("download");
+
+previewBtn.onclick = () => {
+  alert("Preview uses export logic. Click Export to render.");
+};
 
 exportBtn.onclick = async () => {
   const audioFile = audioInput.files[0];
   const coverFile = coverInput.files[0];
+  const lyricsFile = lyricsInput.files[0];
 
   if (!audioFile || !coverFile) {
-    alert("Please upload audio and cover.");
+    alert("Please upload audio and cover image.");
     return;
   }
 
-  // Show active feedback
-  exportBtn.textContent = "Recording...";
-  exportBtn.disabled = true;
-
+  // Canvas
   const canvas = document.createElement("canvas");
   canvas.width = 1280;
   canvas.height = 720;
   const ctx = canvas.getContext("2d");
 
+  // Capture video
+  const stream = canvas.captureStream(30);
+  const recorder = new MediaRecorder(stream, {
+    mimeType: "video/webm"
+  });
+
+  const chunks = [];
+  recorder.ondataavailable = e => chunks.push(e.data);
+  recorder.onstop = () => {
+    const blob = new Blob(chunks, { type: "video/webm" });
+    downloadLink.href = URL.createObjectURL(blob);
+    downloadLink.download = "muvid.webm";
+    downloadLink.textContent = "Download video";
+    downloadLink.style.display = "inline-block";
+  };
+
+  // Load image
   const img = new Image();
   img.src = URL.createObjectURL(coverFile);
   await img.decode();
 
+  // Load audio
   const audio = new Audio(URL.createObjectURL(audioFile));
   audio.crossOrigin = "anonymous";
 
-  // Create AudioContext and ensure it's resumed on click
-  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  const source = audioCtx.createMediaElementSource(audio);
-  source.connect(audioCtx.destination);
-  await audioCtx.resume();
+  // Load lyrics
+  let lyricsLines = [];
+  if (lyricsFile) {
+    const text = await lyricsFile.text();
+    lyricsLines = text.split("\n").filter(l => l.trim() !== "");
+  }
 
-  // MediaRecorder
-  const stream = canvas.captureStream(30);
-  const mediaRecorder = new MediaRecorder(stream, { mimeType: "video/webm; codecs=vp8" });
-  const chunks = [];
-  mediaRecorder.ondataavailable = e => chunks.push(e.data);
-  mediaRecorder.onstop = () => {
-    const blob = new Blob(chunks, { type: "video/webm" });
-    downloadLink.href = URL.createObjectURL(blob);
-    downloadLink.download = "muvid.webm";
-    downloadLink.style.display = "inline-block";
-    downloadLink.textContent = "Download video";
+  const duration = audio.duration || 180;
+  const lineDuration = lyricsLines.length
+    ? duration / lyricsLines.length
+    : 9999;
 
-    // Reset button
-    exportBtn.textContent = "Export WebM";
-    exportBtn.disabled = false;
-  };
-
-  mediaRecorder.start();
-  await audio.play();
-
-  const start = performance.now();
+  recorder.start();
+  audio.play();
 
   function draw() {
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-    if (performance.now() - start < 5000) {
+    // subtle zoom
+    const scale = 1 + Math.sin(performance.now() / 800) * 0.02;
+    const w = canvas.width * scale;
+    const h = canvas.height * scale;
+
+    ctx.drawImage(
+      img,
+      (canvas.width - w) / 2,
+      (canvas.height - h) / 2,
+      w,
+      h
+    );
+
+    // Lyrics
+    if (lyricsLines.length) {
+      const currentLine = Math.floor(audio.currentTime / lineDuration);
+      const text = lyricsLines[currentLine] || "";
+
+      ctx.fillStyle = "rgba(0,0,0,0.6)";
+      ctx.fillRect(0, canvas.height - 160, canvas.width, 120);
+
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 36px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(text, canvas.width / 2, canvas.height - 90);
+    }
+
+    if (!audio.paused) {
       requestAnimationFrame(draw);
     } else {
-      mediaRecorder.stop();
-      audio.pause();
+      recorder.stop();
     }
   }
 
