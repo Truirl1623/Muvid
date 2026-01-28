@@ -1,99 +1,90 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Muvid</title>
-<style>
-body { font-family: sans-serif; padding: 20px; }
-button { padding: 10px 20px; margin-top: 10px; }
-</style>
+  <meta charset="UTF-8" />
+  <title>Muvid</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    body {
+      background: #0e0e0e;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .app {
+      width: 360px;
+      background: #161616;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    label {
+      display: block;
+      margin-top: 12px;
+      font-size: 14px;
+      opacity: 0.8;
+    }
+
+    input, button {
+      width: 100%;
+      margin-top: 6px;
+    }
+
+    button {
+      margin-top: 16px;
+      padding: 10px;
+      background: #1f8cff;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    button:hover {
+      background: #1570cc;
+    }
+
+    a {
+      display: none;
+      margin-top: 16px;
+      text-align: center;
+      color: #1f8cff;
+      text-decoration: none;
+    }
+  </style>
 </head>
 <body>
 
-<h1>Muvid</h1>
+  <div class="app">
+    <h1>Muvid</h1>
 
-<input id="audio" type="file" accept=".mp3,.wav"><br><br>
-<input id="cover" type="file" accept=".png,.jpg,.jpeg"><br><br>
+    <label>Audio (MP3 / WAV)</label>
+    <input id="audio" type="file" accept="audio/*" />
 
-<button id="export">Export WebM</button><br><br>
-<a id="download" style="display:none">Download</a>
+    <label>Cover Image (PNG / JPG)</label>
+    <input id="cover" type="file" accept="image/*" />
 
-<script>
-const audioInput = document.getElementById("audio");
-const coverInput = document.getElementById("cover");
-const exportBtn = document.getElementById("export");
-const downloadLink = document.getElementById("download");
+    <label>Lyrics (optional TXT)</label>
+    <input id="lyrics" type="file" accept=".txt" />
 
-exportBtn.onclick = async () => {
-  const audioFile = audioInput.files[0];
-  const coverFile = coverInput.files[0];
-  if (!audioFile || !coverFile) {
-    alert("Upload audio + cover");
-    return;
-  }
+    <button id="preview">Preview</button>
+    <button id="export">Export WebM</button>
 
-  exportBtn.disabled = true;
-  exportBtn.textContent = "Rendering…";
+    <a id="download">Download video</a>
+  </div>
 
-  // Canvas
-  const canvas = document.createElement("canvas");
-  canvas.width = 1280;
-  canvas.height = 720;
-  const ctx = canvas.getContext("2d");
-
-  // Image
-  const img = new Image();
-  img.src = URL.createObjectURL(coverFile);
-  await img.decode();
-
-  // Audio setup
-  const audio = new Audio(URL.createObjectURL(audioFile));
-  audio.crossOrigin = "anonymous";
-
-  const audioCtx = new AudioContext();
-  const source = audioCtx.createMediaElementSource(audio);
-  const dest = audioCtx.createMediaStreamDestination();
-
-  source.connect(dest);
-  source.connect(audioCtx.destination);
-
-  // Combine VIDEO + AUDIO
-  const canvasStream = canvas.captureStream(30);
-  const combinedStream = new MediaStream([
-    ...canvasStream.getVideoTracks(),
-    ...dest.stream.getAudioTracks()
-  ]);
-
-  const recorder = new MediaRecorder(combinedStream, {
-    mimeType: "video/webm;codecs=vp8,opus"
-  });
-
-  const chunks = [];
-  recorder.ondataavailable = e => chunks.push(e.data);
-  recorder.onstop = () => {
-    const blob = new Blob(chunks, { type: "video/webm" });
-    downloadLink.href = URL.createObjectURL(blob);
-    downloadLink.download = "muvid.webm";
-    downloadLink.style.display = "block";
-    exportBtn.disabled = false;
-    exportBtn.textContent = "Export WebM";
-  };
-
-  recorder.start();
-  await audioCtx.resume();
-  await audio.play();
-
-  function draw() {
-    ctx.fillStyle = "#000";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    if (!audio.ended) requestAnimationFrame(draw);
-    else recorder.stop();
-  }
-
-  draw();
-};
-</script>
-
+  <script src="/src/main.js"></script>
 </body>
 </html>
